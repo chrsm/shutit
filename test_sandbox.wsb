@@ -1,0 +1,10 @@
+<Configuration>
+	<Networking>false</Networking>
+	<MappedFolders>
+		<MappedFolder>
+			<HostFolder>Z:\src\shutit</HostFolder>
+			<SandboxFolder>C:\Users\WDAGUtilityAccount\Desktop\shutit</SandboxFolder>
+			<ReadOnly>true</ReadOnly>
+		</MappedFolder>
+	</MappedFolders>
+</Configuration>
