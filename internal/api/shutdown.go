@@ -1,31 +1,12 @@
-package main
+package api
 
 import (
-	"log"
-	"runtime"
-	"time"
+	"errors"
 
 	"bits.chrsm.org/shutit/internal/win32"
 )
 
-func main() {
-	runtime.LockOSThread()
-
-	tick := time.NewTicker(30 * time.Second)
-	for {
-		select {
-		case t := <-tick.C:
-			if t.Local().Hour() > 22 || t.Local().Hour() < 7 {
-				log.Println("Get off the fuckin' computer")
-				shutit()
-
-				return
-			}
-		}
-	}
-}
-
-func shutit() {
+func Shutdown() error {
 	var (
 		token uintptr
 		privs win32.TokenPrivileges
@@ -33,8 +14,8 @@ func shutit() {
 
 	hnd := win32.GetCurrentProcess()
 	if !win32.OpenProcessToken(hnd, win32.TOKEN_ADJUST_PRIVILEGES|win32.TOKEN_QUERY, &token) {
-		log.Printf("couldn't open current process; token=%#v, hnd=%#v", token, hnd)
-		return
+		//log.Printf("couldn't open current process; token=%#v, hnd=%#v", token, hnd)
+		return errors.New("couldn't open current process")
 	}
 
 	win32.LookupPrivilegeValue(
@@ -47,13 +28,14 @@ func shutit() {
 	privs.Privileges[0].Attributes = win32.SE_PRIVILEGE_ENABLED
 
 	if !win32.AdjustTokenPrivileges(token, false, &privs, 0, nil, nil) {
-		log.Println("failed to adjust token privs")
+		//log.Println("failed to adjust token privs")
+		return errors.New("failed to adjust token privs")
 	}
 
 	err := win32.GetLastError()
 	if err != nil {
-		log.Printf("GetLastError: %#v", err)
-		return
+		//log.Printf("GetLastError: %#v", err)
+		return errors.New("could not GetLastError")
 	}
 
 	ok := win32.ExitWindowsEx(
@@ -61,6 +43,9 @@ func shutit() {
 		win32.SHTDN_REASON_FLAG_PLANNED|win32.SHTDN_REASON_MINOR_UPGRADE|win32.SHTDN_REASON_MAJOR_OPERATINGSYSTEM,
 	)
 	if !ok {
-		log.Printf("failed to shut down: %t", ok)
+		//log.Printf("failed to shut down: %t", ok)
+		return errors.New("could not call ExitWindowsEx")
 	}
+
+	return nil
 }
